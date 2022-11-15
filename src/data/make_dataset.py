@@ -11,13 +11,15 @@ from os import makedirs
 from os.path import isdir
 
 import whisper
+import torch
 
 from tqdm import tqdm
 
 @click.command()
 @click.argument('input_filepath', type=click.Path(exists=True))
 @click.argument('output_filepath', type=click.Path())
-def main(input_filepath, output_filepath):
+@click.argument('cuda', type=str)
+def main(input_filepath, output_filepath, cuda):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
@@ -32,13 +34,16 @@ def main(input_filepath, output_filepath):
     if not isdir(output_filepath):
         makedirs(output_filepath)
 
+    device = torch.device(f'cuda:{cuda}' if torch.cuda.is_available() else 'cpu')
+    print('Using device:', device)
+
     # get Whisper model
     print('Loading Whisper model...')
-    model = whisper.load_model("medium.en")
+    model = whisper.load_model("medium.en").to(device)
 
     # transform and save each file
     for audioFile in tqdm(all_files):
-        print('Processing:', audioFile,'...')
+        # print('Processing:', audioFile,'...')
         # load audio and pad/trim it to fit 30 seconds
         audio = whisper.load_audio(audioFile)
         audio = whisper.pad_or_trim(audio)
@@ -47,7 +52,7 @@ def main(input_filepath, output_filepath):
         mel = mel.view(1, mel.shape[0], mel.shape[1])
         # get embed audio
         transformed_audio = model.embed_audio(mel)
-        transformed_audio = transformed_audio.detach().numpy()[0]
+        transformed_audio = transformed_audio.cpu().detach().numpy()[0]
         # save embed audio
         with open(output_filepath+'/'+audioFile.stem+'.npy', 'wb') as f:
             np.save(f, transformed_audio)

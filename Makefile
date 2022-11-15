@@ -80,9 +80,38 @@ test_environment:
 # PROJECT COMMANDS                                                              #
 #################################################################################
 
+check_cuda:
+	$(PYTHON_INTERPRETER) src/check_cuda.py
+
 # Transform all audio files from source folder and save embed audio into target folder
 embed_audio_dataset:
-	$(PYTHON_INTERPRETER) src/data/make_dataset.py $(source) $(target)
+	$(PYTHON_INTERPRETER) src/data/make_dataset.py $(source) $(target) $(cuda)
+
+# Transcript all audio files from source folder with Whisper and save result as a dict
+transcription:
+	$(PYTHON_INTERPRETER) src/features/build_features.py $(source) $(target) $(cuda)
+
+# Tokenize and apply DistilBert to transcripts
+tokenization:
+	$(PYTHON_INTERPRETER) src/features/tokenize_transcript.py $(source) $(target) $(cuda)
+
+# Logistic Regression on embedding vectors from transcript (DistilBert)
+classify_bert:
+	$(PYTHON_INTERPRETER) src/models/train_lr_on_embedding_vectors.py data/processed models reports $(classifier)
+predict_bert:
+	$(PYTHON_INTERPRETER) src/models/predict_lr.py data/$(data_folder) models reports $(model_name) $(database) $(task)
+
+# Classification on audio features (opensmile, functionals)
+classify_opensmile_features:
+	$(PYTHON_INTERPRETER) src/models/train_classification_on_audio_features.py data/processed models reports $(classifier)
+
+train_cnn:
+	$(PYTHON_INTERPRETER) src/models/train_cnn.py data/processed models reports $(cuda)
+
+# End to end function
+get_score:
+	$(PYTHON_INTERPRETER) src/models/end_to_end.py $(audio_file) reports/end_to_end models $(cuda)
+
 
 #################################################################################
 # Self Documenting Commands                                                     #
