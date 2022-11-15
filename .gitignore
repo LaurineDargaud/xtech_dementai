@@ -78,6 +78,9 @@ target/
 # exclude data from source control by default
 /data/
 /notebooks/audio_control.mp3
+/models/
+/reports/end_to_end/
+/reports/results_experiments/
 
 # Mac OS-specific storage files
 .DS_Store
